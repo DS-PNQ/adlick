@@ -50,7 +50,7 @@ search_term = st.text_input("Tìm kiếm thông tin trong dữ liệu:", "")
 
 
 # Tải dữ liệu
-url = "https://raw.githubusercontent.com/DS-PNQ/ddb/refs/heads/main/ad_click_dataset.csv"
+url = "https://raw.githubusercontent.com/DS-PNQ/adlick/refs/heads/main/ad_click_dataset.csv"
 data = pd.read_csv(url)
 
 # Tìm kiếm trong dữ liệu nếu có từ khóa
