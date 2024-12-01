@@ -4,6 +4,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import streamlit as st
 from sklearn.impute import KNNImputer
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, RocCurveDisplay
 
 # Thiết lập tiêu đề ứng dụng
 st.set_page_config(page_title="Phân Tích Dữ Liệu Click Quảng Cáo", layout="wide")
@@ -284,10 +287,6 @@ sns.boxplot(x='time_of_day', y='age', hue='time_of_day', data=data, palette='Set
 ax.set_title('Độ tuổi theo thời gian trong ngày')
 plt.xticks(rotation=45)
 st.pyplot(fig)
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, RocCurveDisplay
 
 # Prepare the data
 X = data.drop('click', axis=1)  # Use all variables except the target
@@ -311,6 +310,7 @@ y_pred = model.predict(X_test)
 cm = confusion_matrix(y_test, y_pred)
 
 # Plot confusion matrix
+st.subheader("Logistic Confusion confusion matrix:")
 fig_cm, ax_cm = plt.subplots()
 disp = ConfusionMatrixDisplay(confusion_matrix=cm)
 disp.plot(ax=ax_cm)
@@ -318,12 +318,14 @@ ax_cm.set_title('Confusion Matrix')
 st.pyplot(fig_cm)
 
 # Plot ROC curve
+st.subheader("Logistic Confusion ROC curve:")
 fig_roc, ax_roc = plt.subplots()
 RocCurveDisplay.from_estimator(model, X_test, y_test, ax=ax_roc)
 ax_roc.set_title('ROC Curve')
 st.pyplot(fig_roc)
 
 # Display model coefficients as a bar chart
+st.subheader("Logistic Confusion coefficent chart")
 coefficients = pd.DataFrame({
     'Feature': X.columns,
     'Coefficient': model.coef_[0]
