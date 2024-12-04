@@ -288,52 +288,63 @@ ax.set_title('Độ tuổi theo thời gian trong ngày')
 plt.xticks(rotation=45)
 st.pyplot(fig)
 
-# Prepare the data
-X = data.drop('click', axis=1)  # Use all variables except the target
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (accuracy_score, classification_report,
+                             confusion_matrix, ConfusionMatrixDisplay,
+                             roc_curve, auc)
+import matplotlib.pyplot as plt
+
+
+# Convert categorical features to numeric
+X = data.drop('click', axis=1)
 y = data['click']
+X = pd.get_dummies(X, drop_first=True)
 
-# Handle categorical variables
-categorical_cols = X.select_dtypes(include=['object', 'category']).columns
-X = pd.get_dummies(X, columns=categorical_cols, drop_first=True)
+# Split the data into training and testing sets (80% train, 20% test)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42)
 
-# Split the data
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Standardize the data
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
 
-# Train logistic regression model
+# Train logistic regression
 model = LogisticRegression(max_iter=1000)
-model.fit(X_train, y_train)
+model.fit(X_train_scaled, y_train)
 
-# Predict on the test set
-y_pred = model.predict(X_test)
+# Make predictions
+y_pred = model.predict(X_test_scaled)
 
-# Generate confusion matrix
-cm = confusion_matrix(y_test, y_pred)
+# Evaluate the model
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Accuracy: {accuracy:.4f}')
+
+# Classification report
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred, zero_division=0))
 
 # Plot confusion matrix
-st.subheader("Logistic Confusion confusion matrix:")
-fig_cm, ax_cm = plt.subplots()
-disp = ConfusionMatrixDisplay(confusion_matrix=cm)
-disp.plot(ax=ax_cm)
-ax_cm.set_title('Confusion Matrix')
-st.pyplot(fig_cm)
+cm = confusion_matrix(y_test, y_pred)
+ConfusionMatrixDisplay(confusion_matrix=cm).plot()
+plt.title('Confusion Matrix')
+plt.show()
+
+# Plot ROC curve and compute AUC
+y_scores = model.predict_proba(X_test_scaled)[:, 1]
+fpr, tpr, thresholds = roc_curve(y_test, y_scores)
+roc_auc = auc(fpr, tpr)
 
 # Plot ROC curve
-st.subheader("Logistic Confusion ROC curve:")
-fig_roc, ax_roc = plt.subplots()
-RocCurveDisplay.from_estimator(model, X_test, y_test, ax=ax_roc)
-ax_roc.set_title('ROC Curve')
-st.pyplot(fig_roc)
-
-# Display model coefficients as a bar chart
-st.subheader("Logistic Confusion coefficent chart")
-coefficients = pd.DataFrame({
-    'Feature': X.columns,
-    'Coefficient': model.coef_[0]
-})
-coefficients = coefficients.sort_values(by='Coefficient')
-
-fig_coef, ax_coef = plt.subplots(figsize=(8, len(coefficients) / 2))
-sns.barplot(x='Coefficient', y='Feature', data=coefficients, ax=ax_coef)
-ax_coef.set_title('Model Coefficients')
-st.pyplot(fig_coef)
+plt.figure()
+plt.plot(fpr, tpr, label=f'ROC Curve (AUC = {roc_auc:.4f})')
+plt.plot([0, 1], [0, 1], 'k--', color='gray')  # Diagonal reference line
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC)')
+plt.legend(loc='lower right')
+plt.show()
 
