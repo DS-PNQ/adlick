@@ -3,6 +3,6 @@ seaborn
 matplotlib
 streamlit
 scikit-learn
-imbalanced-learn
+imbalanced-learn==0.12.4
 xgboost
-glemaitre imbalanced-learn
+
