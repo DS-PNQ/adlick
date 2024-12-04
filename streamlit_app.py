@@ -507,7 +507,7 @@ y_pred = pipeline.predict(X_test)
     # -------------------------
     # Display Metrics
     # -------------------------
-    st.header("Model Evaluation")
+st.header("Model Evaluation")
     
     # 1. Display Accuracy
 accuracy = accuracy_score(y_test, y_pred)
