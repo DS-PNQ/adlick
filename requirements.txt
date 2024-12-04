@@ -3,3 +3,4 @@ seaborn
 matplotlib
 streamlit
 scikit-learn
+imbalanced-learn
