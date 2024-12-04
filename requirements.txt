@@ -5,3 +5,4 @@ streamlit
 scikit-learn
 imbalanced-learn
 xgboost
+imblearn.pipeline
