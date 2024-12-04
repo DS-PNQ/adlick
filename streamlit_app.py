@@ -287,8 +287,7 @@ sns.boxplot(x='time_of_day', y='age', hue='time_of_day', data=data, palette='Set
 ax.set_title('Độ tuổi theo thời gian trong ngày')
 plt.xticks(rotation=45)
 st.pyplot(fig)
-
-
+st.pyplot(fig_roc)
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -495,5 +494,4 @@ st.download_button(
     file_name='coefficients_table.csv',
     mime='text/csv',
 )
-)
-st.pyplot(fig_roc)
+
