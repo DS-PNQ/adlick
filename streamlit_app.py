@@ -466,10 +466,10 @@ y = data['click']
     
     # Proceed with the rest of the code
     # Identify categorical columns
-    object_columns = X.select_dtypes(include='object').columns.tolist()
+object_columns = X.select_dtypes(include='object').columns.tolist()
     
     # Define preprocessor
-    preprocessor = ColumnTransformer(
+preprocessor = ColumnTransformer(
         transformers=[
             (f'{col}_ohe', OneHotEncoder(handle_unknown='ignore', sparse=False), [col]) 
             for col in object_columns
@@ -478,31 +478,31 @@ y = data['click']
     )
 
     # Split data
-    X_train, X_test, y_train, y_test = train_test_split(
+X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=94)
 
     # Calculate scale_pos_weight
-    scale_pos_weight = y_train.value_counts()[0] / y_train.value_counts()[1]
+scale_pos_weight = y_train.value_counts()[0] / y_train.value_counts()[1]
     
     # Define the model
-    model = XGBClassifier(
+model = XGBClassifier(
         scale_pos_weight=scale_pos_weight,
         random_state=94,
         eval_metric='logloss'
     )
     
     # Create the pipeline
-    pipeline = Pipeline(steps=[
+pipeline = Pipeline(steps=[
         ('preprocessor', preprocessor),
         ('adasyn', ADASYN(random_state=94)),
         ('classifier', model)
     ])
     
     # Fit the pipeline
-    pipeline.fit(X_train, y_train)
+pipeline.fit(X_train, y_train)
     
     # Make predictions
-    y_pred = pipeline.predict(X_test)
+y_pred = pipeline.predict(X_test)
 
     # -------------------------
     # Display Metrics
@@ -510,26 +510,26 @@ y = data['click']
     st.header("Model Evaluation")
     
     # 1. Display Accuracy
-    accuracy = accuracy_score(y_test, y_pred)
-    st.subheader("Accuracy")
-    st.write(f"Accuracy of the model: **{accuracy:.4f}**")
+accuracy = accuracy_score(y_test, y_pred)
+st.subheader("Accuracy")
+st.write(f"Accuracy of the model: **{accuracy:.4f}**")
     
     # 2. Display Classification Report
-    st.subheader("Classification Report")
-    report = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
-    df_report = pd.DataFrame(report).transpose()
-    st.dataframe(df_report.style.format("{:.2f}"))
+st.subheader("Classification Report")
+report = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
+df_report = pd.DataFrame(report).transpose()
+st.dataframe(df_report.style.format("{:.2f}"))
     
-    # 3. Display Confusion Matrix
-    st.subheader("Confusion Matrix")
-    cm = confusion_matrix(y_test, y_pred)
-    fig_cm, ax_cm = plt.subplots()
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, 
+# 3. Display Confusion Matrix
+st.subheader("Confusion Matrix")
+cm = confusion_matrix(y_test, y_pred)
+fig_cm, ax_cm = plt.subplots()
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, 
                 xticklabels=["No Click", "Click"], yticklabels=["No Click", "Click"], ax=ax_cm)
-    ax_cm.set_xlabel("Predicted Label")
-    ax_cm.set_ylabel("True Label")
-    ax_cm.set_title("Confusion Matrix")
-    st.pyplot(fig_cm)
+ax_cm.set_xlabel("Predicted Label")
+ax_cm.set_ylabel("True Label")
+ax_cm.set_title("Confusion Matrix")
+st.pyplot(fig_cm)
 else:
     st.info("Awaiting for CSV file to be uploaded.")
 from sklearn.model_selection import GridSearchCV
