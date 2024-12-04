@@ -285,24 +285,36 @@ ax.set_title('Độ tuổi theo thời gian trong ngày')
 plt.xticks(rotation=45)
 st.pyplot(fig)
 
+import streamlit as st
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import (accuracy_score, classification_report,
-                             confusion_matrix, ConfusionMatrixDisplay,
-                             roc_curve, auc)
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    roc_curve,
+    auc
+)
 import matplotlib.pyplot as plt
+import seaborn as sns
 
+# Load your data
+# Replace the following line with your actual data loading method
+# data = pd.read_csv('your_data.csv')  # Uncomment and modify as needed
+
+# For demonstration purposes, let's assume 'data' is already loaded
 
 # Convert categorical features to numeric
 X = data.drop('click', axis=1)
 y = data['click']
 X = pd.get_dummies(X, drop_first=True)
 
-# Split the data into training and testing sets (80% train, 20% test)
+# Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42)
+    X, y, test_size=0.2, random_state=42
+)
 
 # Standardize the data
 scaler = StandardScaler()
@@ -315,37 +327,124 @@ model.fit(X_train_scaled, y_train)
 
 # Make predictions
 y_pred = model.predict(X_test_scaled)
+y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
 
-# Evaluate the model
+# Compute evaluation metrics
 accuracy = accuracy_score(y_test, y_pred)
-print(f'Accuracy: {accuracy:.4f}')
-st.metric(label="Accuracy", value=f"{accuracy:.2%}")
-st.markdown("**Classification Report:**")
-classification_rep = classification_report(y_test, y_pred, zero_division=0, output_dict=True)
-classification_df = pd.DataFrame(classification_rep).transpose()
-st.dataframe(classification_df.style.format("{:.2f}"))
-st.markdown("**Confusion Matrix:**")
+report = classification_report(y_test, y_pred, output_dict=True)
+df_report = pd.DataFrame(report).transpose()
 cm = confusion_matrix(y_test, y_pred)
-fig_cm, ax_cm = plt.subplots(figsize=(6,4))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax_cm)
-ax_cm.set_xlabel('Predicted')
-ax_cm.set_ylabel('Actual')
-ax_cm.set_title('Confusion Matrix')
-st.pyplot(fig_cm)
-st.markdown("**ROC Curve:**")
 fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
 roc_auc = auc(fpr, tpr)
 
+# Start Streamlit app
+st.title("Logistic Regression Model Evaluation")
+
+# 1. Display Accuracy
+st.write(f"## Accuracy: {accuracy:.4f}")
+
+# 2. Display Classification Report
+st.write("## Classification Report")
+st.dataframe(df_report.style.format("{:.2f}"))
+
+# 3. Display Confusion Matrix with Search Bar
+st.write("## Confusion Matrix")
+
+# Add a search bar to select classes
+classes = sorted(y.unique())
+selected_classes = st.multiselect(
+    "Select classes to display in the confusion matrix",
+    options=classes,
+    default=classes
+)
+
+if selected_classes:
+    # Filter the test and predicted labels
+    indices = [i for i, label in enumerate(y_test) if label in selected_classes]
+    y_test_filtered = y_test.iloc[indices]
+    y_pred_filtered = pd.Series(y_pred, index=y_test.index).iloc[indices]
+    
+    # Compute confusion matrix
+    cm_filtered = confusion_matrix(y_test_filtered, y_pred_filtered, labels=selected_classes)
+    
+    # Plot confusion matrix
+    fig_cm, ax_cm = plt.subplots()
+    sns.heatmap(
+        cm_filtered,
+        annot=True,
+        fmt='d',
+        cmap='Blues',
+        xticklabels=selected_classes,
+        yticklabels=selected_classes,
+        ax=ax_cm
+    )
+    ax_cm.set_xlabel("Predicted Labels")
+    ax_cm.set_ylabel("True Labels")
+    ax_cm.set_title("Confusion Matrix")
+    st.pyplot(fig_cm)
+else:
+    st.warning("Please select at least one class to display the confusion matrix.")
+
+# 4. Display ROC Curve and AUC
+st.write("## ROC Curve and AUC")
+
 fig_roc, ax_roc = plt.subplots()
-sns.lineplot(x=fpr, y=tpr, label=f'AUC = {roc_auc:.2f}')
-sns.lineplot([0, 1], [0, 1], linestyle='--', color='gray')
-ax_roc.set_xlabel('False Positive Rate')
-ax_roc.set_ylabel('True Positive Rate')
-ax_roc.set_title('Receiver Operating Characteristic (ROC) Curve')
-ax_roc.legend(loc='lower right')
+ax_roc.plot(fpr, tpr, label=f"AUC = {roc_auc:.4f}")
+ax_roc.plot([0, 1], [0, 1], 'k--', color='grey')
+ax_roc.set_xlabel("False Positive Rate")
+ax_roc.set_ylabel("True Positive Rate")
+ax_roc.set_title("Receiver Operating Characteristic (ROC) Curve")
+ax_roc.legend(loc="lower right")
 st.pyplot(fig_roc)
 
-st.markdown(f"**AUC:** {roc_auc:.2f}")
-st.subheader("Model Coefficients")
-...
-st.dataframe(coefficients_sorted.drop('Abs_Coefficient', axis=1).reset_index(drop=True))
+# 5. Display Coefficients with Search Bar
+st.write("## Model Coefficients")
+
+# Create DataFrame of coefficients
+coefficients = pd.DataFrame({
+    'Feature': X.columns,
+    'Coefficient': model.coef_[0]
+})
+coefficients = coefficients.sort_values(by='Coefficient', ascending=False)
+
+# Add a search bar for features
+feature_search = st.text_input("Search for features in the coefficient table")
+
+# Filter coefficients based on search input
+if feature_search:
+    filtered_coefficients = coefficients[coefficients['Feature'].str.contains(feature_search, case=False, na=False)]
+else:
+    filtered_coefficients = coefficients
+
+st.dataframe(filtered_coefficients.reset_index(drop=True))
+
+# Optional: Plot Coefficients
+st.write("## Coefficient Bar Chart")
+
+# Optionally, select features to display in the chart
+selected_features = st.multiselect(
+    "Select features to display in the coefficient chart",
+    options=coefficients['Feature'],
+    default=coefficients['Feature']
+)
+
+# Filter the coefficients
+coefficients_filtered = coefficients[coefficients['Feature'].isin(selected_features)]
+
+if not coefficients_filtered.empty:
+    fig_coeff, ax_coeff = plt.subplots(figsize=(8, len(coefficients_filtered) * 0.5))
+    sns.barplot(
+        x='Coefficient',
+        y='Feature',
+        data=coefficients_filtered,
+        ax=ax_coeff,
+        palette='viridis'
+    )
+    ax_coeff.set_xlabel("Coefficient Value")
+    ax_coeff.set_ylabel("Feature")
+    ax_coeff.set_title("Feature Coefficients")
+    plt.tight_layout()
+    st.pyplot(fig_coeff)
+else:
+    st.warning("No features selected for the coefficient chart.")
+
