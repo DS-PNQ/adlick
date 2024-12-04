@@ -530,8 +530,6 @@ ax_cm.set_xlabel("Predicted Label")
 ax_cm.set_ylabel("True Label")
 ax_cm.set_title("Confusion Matrix")
 st.pyplot(fig_cm)
-else:
-    st.info("Awaiting for CSV file to be uploaded.")
 from sklearn.model_selection import GridSearchCV
 
 param_grid = {
