@@ -297,7 +297,6 @@ from sklearn.metrics import (accuracy_score, classification_report,
                              roc_curve, auc)
 import matplotlib.pyplot as plt
 
-
 # Convert categorical features to numeric
 X = data.drop('click', axis=1)
 y = data['click']
@@ -321,17 +320,14 @@ y_pred = model.predict(X_test_scaled)
 
 # Evaluate the model
 accuracy = accuracy_score(y_test, y_pred)
-print(f'Accuracy: {accuracy:.4f}')
-
-# Classification report
-print("\nClassification Report:")
-print(classification_report(y_test, y_pred, zero_division=0))
+classification_rep = classification_report(y_test, y_pred, zero_division=0)
 
 # Plot confusion matrix
 cm = confusion_matrix(y_test, y_pred)
 ConfusionMatrixDisplay(confusion_matrix=cm).plot()
 plt.title('Confusion Matrix')
-plt.show()
+plt.savefig('confusion_matrix.png')
+plt.close()
 
 # Plot ROC curve and compute AUC
 y_scores = model.predict_proba(X_test_scaled)[:, 1]
@@ -346,5 +342,16 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('Receiver Operating Characteristic (ROC)')
 plt.legend(loc='lower right')
-plt.show()
+plt.savefig('roc_curve.png')
+plt.close()
 
+# Streamlit display
+st.title('Model Evaluation')
+
+st.write(f'Accuracy: {accuracy:.4f}')
+st.write('Classification Report:')
+st.text(classification_rep)
+
+st.image('confusion_matrix.png', caption='Confusion Matrix')
+
+st.image('roc_curve.png', caption='ROC Curve')
