@@ -319,7 +319,7 @@ y_pred = model.predict(X_test_scaled)
 # Evaluate the model
 accuracy = accuracy_score(y_test, y_pred)
 print(f'Accuracy: {accuracy:.4f}')
- st.metric(label="Accuracy", value=f"{accuracy:.2%}")
+st.metric(label="Accuracy", value=f"{accuracy:.2%}")
 st.markdown("**Classification Report:**")
 classification_rep = classification_report(y_test, y_pred, zero_division=0, output_dict=True)
 classification_df = pd.DataFrame(classification_rep).transpose()
