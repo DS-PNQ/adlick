@@ -447,7 +447,7 @@ if not coefficients_filtered.empty:
     st.pyplot(fig_coeff)
 else:
     st.warning("No features selected for the coefficient chart.")
-    import pandas as pd
+import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
@@ -458,113 +458,104 @@ from sklearn.metrics import classification_report, confusion_matrix, accuracy_sc
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# Load your data
+# Replace the following line with your actual data loading method
+# Example:
+# data = pd.read_csv('your_data.csv')
+
+# For demonstration purposes, let's assume 'data' is already loaded
+# Example synthetic data (remove when using actual data)
+from sklearn.datasets import make_classification
+
+X_synthetic, y_synthetic = make_classification(
+    n_samples=1000,
+    n_features=10,
+    n_informative=5,
+    n_redundant=2,
+    n_classes=2,
+    random_state=42
+)
+data = pd.DataFrame(X_synthetic, columns=[f'feature_{i}' for i in range(1, 11)])
+data['click'] = y_synthetic
+
 # Start of Streamlit app
 st.title("XGBoost Model Evaluation")
+
+# -------------------------
+# Data Loading Section
+# -------------------------
+st.header("Data Loading")
+
+# Display the first few rows of the dataset
+st.write("First few rows of the dataset:")
+st.write(data.head())
+
 # Extract features and target
 X = data.drop('click', axis=1)
 y = data['click']
-    
-    # Proceed with the rest of the code
-    # Identify categorical columns
+
+# Identify categorical columns
 object_columns = X.select_dtypes(include='object').columns.tolist()
-    
-    # Define preprocessor
+
+# Define preprocessor
 preprocessor = ColumnTransformer(
-        transformers=[
-            (f'{col}_ohe', OneHotEncoder(handle_unknown='ignore', sparse=False), [col]) 
-            for col in object_columns
-        ],
-        remainder='passthrough'
-    )
+    transformers=[
+        (f'{col}_ohe', OneHotEncoder(handle_unknown='ignore', sparse=False), [col]) 
+        for col in object_columns
+    ],
+    remainder='passthrough'
+)
 
-    # Split data
+# Split data
 X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=94)
+    X, y, test_size=0.2, random_state=94)
 
-    # Calculate scale_pos_weight
+# Calculate scale_pos_weight
 scale_pos_weight = y_train.value_counts()[0] / y_train.value_counts()[1]
-    
-    # Define the model
+
+# Define the model
 model = XGBClassifier(
-        scale_pos_weight=scale_pos_weight,
-        random_state=94,
-        eval_metric='logloss'
-    )
-    
-    # Create the pipeline
+    scale_pos_weight=scale_pos_weight,
+    random_state=94,
+    eval_metric='logloss'
+)
+
+# Create the pipeline
 pipeline = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('adasyn', ADASYN(random_state=94)),
-        ('classifier', model)
-    ])
-    
-    # Fit the pipeline
+    ('preprocessor', preprocessor),
+    ('adasyn', ADASYN(random_state=94)),
+    ('classifier', model)
+])
+
+# Fit the pipeline
 pipeline.fit(X_train, y_train)
-    
-    # Make predictions
+
+# Make predictions
 y_pred = pipeline.predict(X_test)
 
-    # -------------------------
-    # Display Metrics
-    # -------------------------
+# -------------------------
+# Display Metrics
+# -------------------------
 st.header("Model Evaluation")
-    
-    # 1. Display Accuracy
+
+# 1. Display Accuracy
 accuracy = accuracy_score(y_test, y_pred)
 st.subheader("Accuracy")
 st.write(f"Accuracy of the model: **{accuracy:.4f}**")
-    
-    # 2. Display Classification Report
+
+# 2. Display Classification Report
 st.subheader("Classification Report")
 report = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
 df_report = pd.DataFrame(report).transpose()
 st.dataframe(df_report.style.format("{:.2f}"))
-    
+
 # 3. Display Confusion Matrix
 st.subheader("Confusion Matrix")
 cm = confusion_matrix(y_test, y_pred)
 fig_cm, ax_cm = plt.subplots()
 sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, 
-                xticklabels=["No Click", "Click"], yticklabels=["No Click", "Click"], ax=ax_cm)
+            xticklabels=["No Click", "Click"], yticklabels=["No Click", "Click"], ax=ax_cm)
 ax_cm.set_xlabel("Predicted Label")
 ax_cm.set_ylabel("True Label")
 ax_cm.set_title("Confusion Matrix")
 st.pyplot(fig_cm)
-from sklearn.model_selection import GridSearchCV
-
-param_grid = {
-    'classifier__learning_rate': [0.01, 0.1, 0.2],
-    'classifier__n_estimators': [100, 200],
-    'classifier__max_depth': [3, 5, 7]
-}
-
-grid_search = GridSearchCV(pipeline, param_grid, cv=5, scoring='accuracy')
-grid_search.fit(X_train, y_train)
-
-print("Best Parameters: ", grid_search.best_params_)
-model_best = XGBClassifier(
-    scale_pos_weight=scale_pos_weight, 
-    learning_rate=0.2, 
-    max_depth=7, 
-    n_estimators=200, 
-    random_state=94, 
-    use_label_encoder=False, 
-    eval_metric='logloss'
-)
-
-pipeline_best = Pipeline(steps=[
-    ('preprocessor', preprocessor),
-    ('adasyn', ADASYN(random_state=94)),
-    ('classifier', model_best)
-])
-
-pipeline_best.fit(X_train, y_train)
-
-y_pred_best = pipeline_best.predict(X_test)
-
-print("Accuracy:", accuracy_score(y_test, y_pred))
-print("Classification Report for the Best Model:\n", classification_report(y_test, y_pred_best))
-print("Confusion Matrix for the Best Model:\n", confusion_matrix(y_test, y_pred_best))
-
-plot_confusion_matrix(y_test, y_pred_best)
-
