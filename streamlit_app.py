@@ -323,35 +323,14 @@ accuracy = accuracy_score(y_test, y_pred)
 classification_rep = classification_report(y_test, y_pred, zero_division=0)
 
 # Plot confusion matrix
-cm = confusion_matrix(y_test, y_pred)
-ConfusionMatrixDisplay(confusion_matrix=cm).plot()
-plt.title('Confusion Matrix')
-plt.savefig('confusion_matrix.png')
-plt.close()
-
-# Plot ROC curve and compute AUC
-y_scores = model.predict_proba(X_test_scaled)[:, 1]
-fpr, tpr, thresholds = roc_curve(y_test, y_scores)
-roc_auc = auc(fpr, tpr)
+fig_cm, ax_cm = plt.subplots()
+disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+disp.plot(ax=ax_cm)
+ax_cm.set_title('Confusion Matrix')
+st.pyplot(fig_cm)
 
 # Plot ROC curve
-plt.figure()
-plt.plot(fpr, tpr, label=f'ROC Curve (AUC = {roc_auc:.4f})')
-plt.plot([0, 1], [0, 1], 'k--', color='gray')  # Diagonal reference line
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('Receiver Operating Characteristic (ROC)')
-plt.legend(loc='lower right')
-plt.savefig('roc_curve.png')
-plt.close()
-
-# Streamlit display
-st.title('Model Evaluation')
-
-st.write(f'Accuracy: {accuracy:.4f}')
-st.write('Classification Report:')
-st.text(classification_rep)
-
-st.image('confusion_matrix.png', caption='Confusion Matrix')
-
-st.image('roc_curve.png', caption='ROC Curve')
+fig_roc, ax_roc = plt.subplots()
+RocCurveDisplay.from_estimator(model, X_test, y_test, ax=ax_roc)
+ax_roc.set_title('ROC Curve')
+st.pyplot(fig_roc)
