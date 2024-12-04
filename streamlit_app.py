@@ -288,6 +288,7 @@ ax.set_title('Độ tuổi theo thời gian trong ngày')
 plt.xticks(rotation=45)
 st.pyplot(fig)
 
+
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -296,41 +297,203 @@ from sklearn.metrics import (accuracy_score, classification_report,
                              confusion_matrix, ConfusionMatrixDisplay,
                              roc_curve, auc)
 import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
 
-# Convert categorical features to numeric
+# ------------------------------
+# 1. Streamlit App Configuration
+# ------------------------------
+st.set_page_config(
+    page_title="Logistic Regression Evaluation",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+st.title("Logistic Regression Model Evaluation")
+
+# ------------------------------
+# 2. Load Data
+# ------------------------------
+
+@st.cache(allow_output_mutation=True)
+def load_data():
+   
+    from sklearn.datasets import make_classification
+    X, y = make_classification(n_samples=500, n_features=10, 
+                               n_informative=5, n_redundant=2, 
+                               n_classes=2, random_state=42)
+    feature_names = [f'feature_{i}' for i in range(1, 11)]
+    data = pd.DataFrame(X, columns=feature_names)
+    data['click'] = y
+    return data
+
+data = load_data()
+
+st.subheader("Dataset Overview")
+st.write("### Features:", data.drop('click', axis=1).columns.tolist())
+st.write("### Target:", 'click')
+st.dataframe(data.head())
+
+# ------------------------------
+# 3. Data Preparation
+# ------------------------------
+
+st.subheader("Data Preparation")
+
+# Convert categorical features to numeric (if any). In this sample, data is already numeric.
+# If your dataset has categorical features, uncomment and modify the following lines:
+# X = data.drop('click', axis=1)
+# y = data['click']
+# X = pd.get_dummies(X, drop_first=True)
+
 X = data.drop('click', axis=1)
 y = data['click']
-X = pd.get_dummies(X, drop_first=True)
+
+# Display class distribution
+st.markdown("**Class Distribution:**")
+class_dist = y.value_counts().reset_index()
+class_dist.columns = ['Class', 'Count']
+st.bar_chart(class_dist.set_index('Class'))
 
 # Split the data into training and testing sets (80% train, 20% test)
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42)
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+st.markdown("**Training and Testing Split:**")
+col1, col2 = st.columns(2)
+with col1:
+    st.write("### Training Set")
+    st.write(X_train.shape)
+with col2:
+    st.write("### Testing Set")
+    st.write(X_test.shape)
 
 # Standardize the data
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
+st.markdown("**Feature Scaling Applied:** StandardScaler")
+
+# ------------------------------
+# 4. Train Logistic Regression Model
+# ------------------------------
+
+st.subheader("Logistic Regression Model Training")
+
 # Train logistic regression
-model = LogisticRegression(max_iter=1000)
+model = LogisticRegression(max_iter=1000, solver='liblinear', random_state=42)
 model.fit(X_train_scaled, y_train)
+
+st.success("Logistic Regression model trained successfully!")
+
+# ------------------------------
+# 5. Make Predictions
+# ------------------------------
 
 # Make predictions
 y_pred = model.predict(X_test_scaled)
+y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
 
-# Evaluate the model
+# ------------------------------
+# 6. Evaluate the Model
+# ------------------------------
+
+st.subheader("Model Evaluation")
+
+# 6.1 Accuracy
 accuracy = accuracy_score(y_test, y_pred)
-classification_rep = classification_report(y_test, y_pred, zero_division=0)
+st.metric(label="Accuracy", value=f"{accuracy:.2%}")
 
-# Plot confusion matrix
-fig_cm, ax_cm = plt.subplots()
-disp = ConfusionMatrixDisplay(confusion_matrix=cm)
-disp.plot(ax=ax_cm)
+# 6.2 Classification Report
+st.markdown("**Classification Report:**")
+classification_rep = classification_report(y_test, y_pred, zero_division=0, output_dict=True)
+classification_df = pd.DataFrame(classification_rep).transpose()
+st.dataframe(classification_df.style.format("{:.2f}"))
+
+# 6.3 Confusion Matrix
+st.markdown("**Confusion Matrix:**")
+cm = confusion_matrix(y_test, y_pred)
+fig_cm, ax_cm = plt.subplots(figsize=(6,4))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax_cm)
+ax_cm.set_xlabel('Predicted')
+ax_cm.set_ylabel('Actual')
 ax_cm.set_title('Confusion Matrix')
 st.pyplot(fig_cm)
 
-# Plot ROC curve
+# 6.4 ROC Curve and AUC
+fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
+roc_auc = auc(fpr, tpr)
+
+st.markdown("**ROC Curve:**")
 fig_roc, ax_roc = plt.subplots()
-RocCurveDisplay.from_estimator(model, X_test, y_test, ax=ax_roc)
-ax_roc.set_title('ROC Curve')
+sns.lineplot(x=fpr, y=tpr, label=f'AUC = {roc_auc:.2f}')
+sns.lineplot([0, 1], [0, 1], linestyle='--', color='gray')
+ax_roc.set_xlabel('False Positive Rate')
+ax_roc.set_ylabel('True Positive Rate')
+ax_roc.set_title('Receiver Operating Characteristic (ROC) Curve')
+ax_roc.legend(loc='lower right')
+st.pyplot(fig_roc)
+
+st.markdown(f"**AUC:** {roc_auc:.2f}")
+
+# ------------------------------
+# 7. Coefficients Table and Visualization
+# ------------------------------
+
+st.subheader("Model Coefficients")
+
+# Create a DataFrame for coefficients
+coefficients = pd.DataFrame({
+    'Feature': X.columns,
+    'Coefficient': model.coef_[0]
+})
+
+# Calculate the absolute value of coefficients for sorting
+coefficients['Abs_Coefficient'] = coefficients['Coefficient'].abs()
+
+# Sort the coefficients by absolute value in descending order
+coefficients_sorted = coefficients.sort_values(by='Abs_Coefficient', ascending=False)
+
+# Display the coefficients table
+st.markdown("**Logistic Regression Coefficients:**")
+st.dataframe(coefficients_sorted.drop('Abs_Coefficient', axis=1).reset_index(drop=True))
+
+# Plot coefficients
+st.markdown("**Coefficient Bar Chart:**")
+fig_coeff, ax_coeff = plt.subplots(figsize=(10, 8))
+sns.barplot(x='Coefficient', y='Feature', data=coefficients_sorted, palette='viridis', ax=ax_coeff)
+ax_coeff.set_title('Logistic Regression Coefficients')
+ax_coeff.set_xlabel('Coefficient Value')
+ax_coeff.set_ylabel('Feature')
+plt.tight_layout()
+st.pyplot(fig_coeff)
+
+# ------------------------------
+# 8. Optional: Download Results
+# ------------------------------
+
+st.subheader("Download Results")
+
+# Convert classification report to CSV
+st.markdown("**Download Classification Report:**")
+csv_classification = classification_df.to_csv(index=True)
+st.download_button(
+    label="Download Classification Report",
+    data=csv_classification,
+    file_name='classification_report.csv',
+    mime='text/csv',
+)
+
+# Convert coefficients to CSV
+st.markdown("**Download Coefficients:**")
+csv_coefficients = coefficients_sorted.drop('Abs_Coefficient', axis=1).reset_index(drop=True).to_csv(index=False)
+st.download_button(
+    label="Download Coefficients Table",
+    data=csv_coefficients,
+    file_name='coefficients_table.csv',
+    mime='text/csv',
+)
+)
 st.pyplot(fig_roc)
