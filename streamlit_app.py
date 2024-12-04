@@ -460,10 +460,9 @@ import seaborn as sns
 
 # Start of Streamlit app
 st.title("XGBoost Model Evaluation")
-    
-    # Extract features and target
-    X = data.drop('click', axis=1)
-    y = data['click']
+# Extract features and target
+X = data.drop('click', axis=1)
+y = data['click']
     
     # Proceed with the rest of the code
     # Identify categorical columns
