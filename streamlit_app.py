@@ -458,26 +458,8 @@ from sklearn.metrics import classification_report, confusion_matrix, accuracy_sc
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Load your data
-# Replace the following line with your actual data loading method
-# Example:
-# data = pd.read_csv('your_data.csv')
-
-# For demonstration purposes, let's assume 'data' is already loaded
-
 # Start of Streamlit app
 st.title("XGBoost Model Evaluation")
-
-# -------------------------
-# Data Loading Section
-# -------------------------
-st.header("Data Loading")
-
-uploaded_file = st.file_uploader("Upload your CSV data file", type=["csv"])
-if uploaded_file is not None:
-    data = pd.read_csv(uploaded_file)
-    st.write("First few rows of the dataset:")
-    st.write(data.head())
     
     # Extract features and target
     X = data.drop('click', axis=1)
